@@ -1,0 +1,8 @@
+{
+  "Model": "CatBoost Multi-Class (Accuracy++ for Deployment)",
+  "ROC_AUC": 0.9113573425614895,
+  "Precision": 0.7755431145789901,
+  "Recall": 0.7143096074355482,
+  "F1_macro": 0.706488388066785,
+  "F1_weighted": 0.706488388066785
+}

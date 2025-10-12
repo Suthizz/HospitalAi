@@ -1,0 +1,21 @@
+[
+  "age",
+  "sex",
+  "is_night",
+  "head_injury",
+  "mass_casualty",
+  "risk1",
+  "risk2",
+  "risk3",
+  "risk4",
+  "risk5",
+  "cannabis",
+  "amphetamine",
+  "drugs",
+  "activity",
+  "aplace",
+  "prov",
+  "age_group_60plus",
+  "risk_count",
+  "night_flag"
+]
