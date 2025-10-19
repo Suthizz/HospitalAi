@@ -24,41 +24,41 @@ st.caption("ระบบสนับสนุนการตัดสินใ�
 # ----------------------------------------------------------
 @st.cache_resource
 def load_all():
-    msgs = []  # เก็บข้อความไว้แสดงใน expander
+    msgs = []  # Store messages to show in the expander
 
     # 🔹 CatBoost Model
     try:
         model = joblib.load("predict_catboost_multi.pkl")
         msgs.append("✅ predict_catboost_multi.pkl — Clinical Severity Model")
-    except:
+    except FileNotFoundError:
         model = None
-        msgs.append("❌ ไม่พบ predict_catboost_multi.pkl")
+        msgs.append("❌ predict_catboost_multi.pkl not found")
 
     # 🔹 Encoders
     try:
         encoders = joblib.load("encoders_multi.pkl")
         msgs.append("✅ encoders_multi.pkl — Encoders for Clinical Data")
-    except:
+    except FileNotFoundError:
         encoders = None
-        msgs.append("⚠️ ไม่พบ encoders_multi.pkl")
+        msgs.append("⚠️ encoders_multi.pkl not found")
 
     # 🔹 Features
     try:
         with open("features_multi.json", "r") as f:
             features = json.load(f)
         msgs.append("✅ features_multi.json — Model Features Configuration")
-    except:
+    except FileNotFoundError:
         features = []
-        msgs.append("⚠️ ไม่พบ features_multi.json")
+        msgs.append("⚠️ features_multi.json not found")
 
     # 🔹 K-Means
     try:
         kmeans = joblib.load("kmeans_cluster_model.pkl")
         scaler = joblib.load("scaler_cluster.pkl")
         msgs.append("✅ kmeans_cluster_model.pkl / scaler_cluster.pkl — Clustering Models")
-    except:
+    except FileNotFoundError:
         kmeans = scaler = None
-        msgs.append("⚠️ ไม่พบไฟล์ K-Means / Scaler")
+        msgs.append("⚠️ K-Means / Scaler files not found")
 
     # 🔹 Apriori
     try:
@@ -66,19 +66,19 @@ def load_all():
         rules_severe = joblib.load("apriori_rules_severe.pkl")
         rules_fatal = joblib.load("apriori_rules_fatal.pkl")
         msgs.append("✅ apriori_rules_[minor/severe/fatal].pkl — Risk Pattern Mining Rules")
-    except:
+    except FileNotFoundError:
         rules_minor = rules_severe = rules_fatal = None
-        msgs.append("⚠️ ไม่พบไฟล์กฎ Apriori")
+        msgs.append("⚠️ Apriori rules files not found")
 
-    # ✅ แสดงผลแบบเรียบใน expander (คุณอยากได้ตรงนี้)
-    with st.expander("📂 รายการไฟล์ที่โหลดแล้ว", expanded=False):
+    # ✅ Display loaded files in an expander
+    with st.expander("📂 Loaded Files Status", expanded=False):
         for m in msgs:
             st.caption(m)
 
     return model, encoders, features, kmeans, scaler, rules_minor, rules_severe, rules_fatal
 
 
-# เรียกใช้
+# Load all necessary files
 model, encoders, features, kmeans, scaler, rules_minor, rules_severe, rules_fatal = load_all()
 
 
@@ -86,46 +86,27 @@ model, encoders, features, kmeans, scaler, rules_minor, rules_severe, rules_fata
 # 🧩 Manual Mappings
 # ----------------------------------------------------------
 activity_mapping = {
-    "0": "เดินเท้า",
-    "1": "โดยสารพาหนะสาธารณะ",
-    "2": "โดยสารพาหนะส่วนบุคคล",
-    "3": "ขับขี่พาหนะส่วนบุคคล",
-    "4": "ทำงาน",
-    "5": "เล่นกีฬา",
-    "6": "กิจกรรมอื่น ๆ"
+    "0": "Walking", "1": "Public Transport", "2": "Private Vehicle",
+    "3": "Driving", "4": "Working", "5": "Sports", "6": "Other Activities"
 }
-
 aplace_mapping = {
-    "10": "บ้านพักอาศัย",
-    "11": "ถนน/ทางหลวง",
-    "12": "สถานที่ทำงาน",
-    "13": "โรงเรียน/สถาบันศึกษา",
-    "14": "พื้นที่สาธารณะ",
-    "15": "อื่น ๆ"
+    "10": "Home", "11": "Road/Highway", "12": "Workplace",
+    "13": "School/Institution", "14": "Public Area", "15": "Other"
 }
-
 prov_mapping = {
-    "10": "กรุงเทพมหานคร",
-    "20": "เชียงใหม่",
-    "30": "ขอนแก่น",
-    "40": "ภูเก็ต",
-    "50": "นครราชสีมา",
-    "60": "สงขลา",
-    "99": "อื่น ๆ"
+    "10": "Bangkok", "20": "Chiang Mai", "30": "Khon Kaen",
+    "40": "Phuket", "50": "Nakhon Ratchasima", "60": "Songkhla", "99": "Other"
 }
-
-severity_map = {0: "เสี่ยงน้อย", 1: "เสี่ยงปานกลาง", 2: "เสี่ยงมาก"}
+severity_map = {0: "Low Risk", 1: "Medium Risk", 2: "High Risk"}
 advice_map = {
-    "เสี่ยงน้อย": "ดูแลอาการทั่วไป เฝ้าระวังซ้ำทุก 15–30 นาที",
-    "เสี่ยงปานกลาง": "ส่งตรวจเพิ่มเติม ให้สารน้ำ / ยาแก้ปวด / เฝ้าสัญญาณชีพใกล้ชิด",
-    "เสี่ยงมาก": "แจ้งทีมสหสาขา เปิดทางเดินหายใจ เตรียมห้องฉุกเฉินหรือส่งต่อด่วน"
+    "Low Risk": "General observation, re-evaluate every 15–30 minutes.",
+    "Medium Risk": "Send for further investigation, provide fluids/painkillers, monitor vital signs closely.",
+    "High Risk": "Alert multidisciplinary team, secure airway, prepare ER or urgent transfer."
 }
-
-# สี triage
 triage_color = {
-    "เสี่ยงน้อย": "#4CAF50",      # เขียว
-    "เสี่ยงปานกลาง": "#FFC107",  # เหลือง
-    "เสี่ยงมาก": "#F44336"        # แดง
+    "Low Risk": "#4CAF50",      # Green
+    "Medium Risk": "#FFC107",  # Yellow
+    "High Risk": "#F44336"     # Red
 }
 
 # ==========================================================
@@ -138,59 +119,54 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Clinical Summary Dashboard"
 ])
 
+# Initialize session state for prediction results
+if 'prediction_result' not in st.session_state:
+    st.session_state.prediction_result = None
+
 # ----------------------------------------------------------
-# 🧠 TAB 1 — CatBoost Prediction (UNCHANGED LOGIC)
+# 🧠 TAB 1 — CatBoost Prediction
 # ----------------------------------------------------------
 with tab1:
     st.subheader("🧠 Clinical Severity Prediction")
-    st.caption("ระบบประเมินระดับความรุนแรงของผู้บาดเจ็บแบบเรียลไทม์")
+    st.caption("Real-time assessment system for patient injury severity.")
 
-    # ORIGINAL INPUT FORM (unchanged)
-    st.subheader("📋 ข้อมูลผู้บาดเจ็บ")
+    st.subheader("📋 Patient Information")
     with st.form("input_form"):
-        age = st.number_input("อายุ (ปี)", min_value=0, max_value=120, value=35)
-        sex = st.radio("เพศ", ["หญิง", "ชาย"], horizontal=True)
-        is_night = st.checkbox("เกิดเหตุเวลากลางคืน", value=False)
-        head_injury = st.checkbox("บาดเจ็บที่ศีรษะ", value=False)
-        mass_casualty = st.checkbox("เหตุการณ์ผู้บาดเจ็บจำนวนมาก", value=False)
+        age = st.number_input("Age (years)", min_value=0, max_value=120, value=35)
+        sex = st.radio("Sex", ["Female", "Male"], horizontal=True)
+        is_night = st.checkbox("Occurred at night", value=False)
+        head_injury = st.checkbox("Head injury", value=False)
+        mass_casualty = st.checkbox("Mass casualty incident", value=False)
 
-        st.markdown("**ปัจจัยเสี่ยง (Risk Factors)**")
+        st.markdown("**Risk Factors**")
         c1, c2, c3, c4, c5 = st.columns(5)
-        with c1: risk1 = st.checkbox("ไม่สวมหมวกนิรภัย / เข็มขัดนิรภัย")
-        with c2: risk2 = st.checkbox("ขับรถเร็ว / ประมาท")
-        with c3: risk3 = st.checkbox("เมา / ดื่มสุรา")
-        with c4: risk4 = st.checkbox("ผู้สูงอายุ / เด็กเล็ก")
-        with c5: risk5 = st.checkbox("บาดเจ็บหลายตำแหน่ง")
+        with c1: risk1 = st.checkbox("No helmet/seatbelt")
+        with c2: risk2 = st.checkbox("Speeding/Reckless driving")
+        with c3: risk3 = st.checkbox("Drunk driving")
+        with c4: risk4 = st.checkbox("Elderly/Young child")
+        with c5: risk5 = st.checkbox("Multiple injuries")
 
-        st.markdown("**สารเสพติด/ยาในร่างกาย**")
+        st.markdown("**Substances Detected**")
         d1, d2, d3 = st.columns(3)
-        with d1: cannabis = st.checkbox("กัญชา")
-        with d2: amphetamine = st.checkbox("ยาบ้า / แอมเฟตามีน")
-        with d3: drugs = st.checkbox("ยาอื่น ๆ")
+        with d1: cannabis = st.checkbox("Cannabis")
+        with d2: amphetamine = st.checkbox("Amphetamine")
+        with d3: drugs = st.checkbox("Other drugs")
 
-        st.markdown("**บริบทของเหตุการณ์**")
-        activity = st.selectbox("กิจกรรมขณะเกิดเหตุ", list(activity_mapping.values()))
-        aplace = st.selectbox("สถานที่เกิดเหตุ", list(aplace_mapping.values()))
-        prov = st.selectbox("จังหวัดที่เกิดเหตุ", list(prov_mapping.values()))
-        submit = st.form_submit_button("🔎 ประเมินระดับความเสี่ยง")
+        st.markdown("**Incident Context**")
+        activity = st.selectbox("Activity at time of incident", list(activity_mapping.values()))
+        aplace = st.selectbox("Place of incident", list(aplace_mapping.values()))
+        prov = st.selectbox("Province of incident", list(prov_mapping.values()))
+        submit = st.form_submit_button("🔎 Assess Risk Level")
 
     def preprocess_input(data_dict):
         df = pd.DataFrame([data_dict])
         reverse_activity = {v: k for k, v in activity_mapping.items()}
         reverse_aplace = {v: k for k, v in aplace_mapping.items()}
         reverse_prov = {v: k for k, v in prov_mapping.items()}
-        if df.at[0, "activity"] in reverse_activity:
-            df.at[0, "activity"] = reverse_activity[df.at[0, "activity"]]
-        if df.at[0, "aplace"] in reverse_aplace:
-            df.at[0, "aplace"] = reverse_aplace[df.at[0, "aplace"]]
-        if df.at[0, "prov"] in reverse_prov:
-            df.at[0, "prov"] = reverse_prov[df.at[0, "prov"]]
-        for col in [
-            "age", "sex", "is_night", "head_injury", "mass_casualty",
-            "risk1", "risk2", "risk3", "risk4", "risk5",
-            "cannabis", "amphetamine", "drugs"
-        ]:
-            df[col] = df[col].astype(float)
+        df["activity"] = df["activity"].map(reverse_activity)
+        df["aplace"] = df["aplace"].map(reverse_aplace)
+        df["prov"] = df["prov"].map(reverse_prov)
+
         for col in ["activity", "aplace", "prov"]:
             val = str(df.at[0, col])
             if encoders and col in encoders:
@@ -198,213 +174,153 @@ with tab1:
                 if val in le.classes_:
                     df[col] = le.transform([val])[0]
                 else:
-                    df[col] = 0
+                    df[col] = -1 # Use -1 for unknown categories
             else:
-                df[col] = 0
-        if "age_group_60plus" not in df.columns:
-            df["age_group_60plus"] = (df["age"] >= 60).astype(int)
-        if "risk_count" not in df.columns:
-            df["risk_count"] = df[["risk1","risk2","risk3","risk4","risk5"]].sum(axis=1)
-        if "night_flag" not in df.columns:
-            df["night_flag"] = df["is_night"].astype(int)
+                df[col] = -1
+
+        df["age_group_60plus"] = (df["age"] >= 60).astype(int)
+        df["risk_count"] = df[["risk1","risk2","risk3","risk4","risk5"]].sum(axis=1)
+        df["night_flag"] = df["is_night"].astype(int)
         df = df.reindex(columns=features, fill_value=0)
         return df
 
     if submit:
         input_data = {
-            "age": age,
-            "sex": 1 if sex == "ชาย" else 0,
-            "is_night": int(is_night),
-            "head_injury": int(head_injury),
+            "age": age, "sex": 1 if sex == "Male" else 0,
+            "is_night": int(is_night), "head_injury": int(head_injury),
             "mass_casualty": int(mass_casualty),
-            "risk1": int(risk1),
-            "risk2": int(risk2),
-            "risk3": int(risk3),
-            "risk4": int(risk4),
-            "risk5": int(risk5),
-            "cannabis": int(cannabis),
-            "amphetamine": int(amphetamine),
-            "drugs": int(drugs),
-            "activity": activity,
-            "aplace": aplace,
-            "prov": prov
+            "risk1": int(risk1), "risk2": int(risk2), "risk3": int(risk3),
+            "risk4": int(risk4), "risk5": int(risk5),
+            "cannabis": int(cannabis), "amphetamine": int(amphetamine), "drugs": int(drugs),
+            "activity": activity, "aplace": aplace, "prov": prov
         }
 
         X_input = preprocess_input(input_data)
         if model is not None:
             probs = model.predict_proba(X_input)[0]
             pred_class = int(np.argmax(probs))
-            label = severity_map.get(pred_class, "ไม่ทราบ")
+            label = severity_map.get(pred_class, "Unknown")
             color = triage_color.get(label, "#2196F3")
 
-            # 🎨 แสดงผลสี triage
-            st.markdown(
-                f"<div style='background-color:{color};padding:12px;border-radius:10px;'>"
-                f"<h3 style='color:white;text-align:center;'>ระดับความเสี่ยงที่คาดการณ์: {label}</h3></div>",
-                unsafe_allow_html=True
-            )
+            # Store result in session state
+            st.session_state.prediction_result = {
+                'label': label,
+                'color': color,
+                'advice': advice_map.get(label),
+                'confidence': probs[pred_class],
+                'input_data': input_data,
+                'X_input': X_input
+            }
 
-            st.info(f"💡 แนวทางทางการแพทย์เบื้องต้น: {advice_map[label]}")
-            st.caption(f"🧠 ความมั่นใจของระบบ: {probs[pred_class]*100:.1f}%")
-
-            
-# ----------------------------------------------------------
-# 🗂️ Save prediction log for dashboard summary
-# ----------------------------------------------------------
+            # Log prediction to file
             log_file = "prediction_log.csv"
             new_row = pd.DataFrame([{
-                "timestamp": pd.Timestamp.now(),
-                "age": age,
-                "sex": sex,
-                "predicted_severity": label
+                "timestamp": pd.Timestamp.now(), "age": age, "sex": sex, "predicted_severity": label
             }])
             if os.path.exists(log_file):
                 new_row.to_csv(log_file, mode="a", index=False, header=False)
             else:
                 new_row.to_csv(log_file, index=False)
-            st.success("📁 บันทึกผลการประเมินเข้าสู่ระบบ Dashboard แล้ว")
+            st.success("📁 Assessment result saved to the Dashboard system.")
+        else:
+            st.error("Model is not loaded. Cannot perform prediction.")
 
+    if st.session_state.prediction_result:
+        res = st.session_state.prediction_result
+        st.markdown(
+            f"<div style='background-color:{res['color']};padding:12px;border-radius:10px;'>"
+            f"<h3 style='color:white;text-align:center;'>Predicted Risk Level: {res['label']}</h3></div>",
+            unsafe_allow_html=True
+        )
+        st.info(f"💡 Preliminary Medical Guideline: {res['advice']}")
+        st.caption(f"🧠 System Confidence: {res['confidence']*100:.1f}%")
 
 # ----------------------------------------------------------
-# 👥 TAB 2 — K-Means Cluster Analysis (Improved)
+# 👥 TAB 2 — K-Means Cluster Analysis
 # ----------------------------------------------------------
 with tab2:
     st.subheader("👥 Patient Segmentation")
-    st.caption("วิเคราะห์กลุ่มผู้บาดเจ็บ เพื่อใช้ในการจัดสรรทรัพยากรและการป้องกันเชิงรุก")
+    st.caption("Analyze patient groups for resource allocation and proactive prevention.")
 
-    # ------------------------------------------------------
-    # 🔹 Patient Summary (ข้อมูลจากการกรอก Tab1)
-    # ------------------------------------------------------
-    if submit:
-        st.markdown("### 🧾 ข้อมูลผู้บาดเจ็บ")
+    if st.session_state.prediction_result:
+        res = st.session_state.prediction_result
+        data = res['input_data']
+
+        st.markdown("### 🧾 Patient Information Summary")
         summary_cols = st.columns(3)
-        summary_cols[0].metric("อายุ", f"{age} ปี")
-        summary_cols[1].metric("เพศ", sex)
-        summary_cols[2].metric("ระดับความเสี่ยงที่คาดการณ์", label)
+        summary_cols[0].metric("Age", f"{data['age']} years")
+        summary_cols[1].metric("Sex", "Male" if data['sex'] == 1 else "Female")
+        summary_cols[2].metric("Predicted Risk Level", res['label'])
 
-        # แสดงปัจจัยเสี่ยงสั้น ๆ
-        risk_summary = []
-        if risk1: risk_summary.append("❗ ไม่สวมหมวกนิรภัย")
-        if risk2: risk_summary.append("⚡ ขับรถเร็ว")
-        if risk3: risk_summary.append("🍺 เมาแล้วขับ")
-        if risk4: risk_summary.append("👶 เด็ก/ผู้สูงอายุ")
-        if risk5: risk_summary.append("🩸 บาดเจ็บหลายตำแหน่ง")
-        if not risk_summary:
-            risk_summary = ["- ไม่มีปัจจัยเสี่ยงชัดเจน"]
+        risk_summary = [name for name, val in {"❗ No helmet": data['risk1'], "⚡ Speeding": data['risk2'], "🍺 Drunk driving": data['risk3'], "👶 Child/Elderly": data['risk4'], "🩸 Multiple injuries": data['risk5']}.items() if val]
+        st.markdown(f"**Risk Factors:** {', '.join(risk_summary) if risk_summary else '-'}")
 
-        st.markdown(f"**ปัจจัยเสี่ยง:** {', '.join(risk_summary)}")
+        if kmeans and scaler:
+            X_input = res['X_input']
+            if hasattr(scaler, "feature_names_in_"):
+                valid_cols = [c for c in scaler.feature_names_in_ if c in X_input.columns]
+                X_cluster = X_input[valid_cols]
+            else:
+                X_cluster = X_input.select_dtypes(include=[np.number])
 
-    else:
-        st.info("🕐 เมื่อกรอกข้อมูลและประเมินความเสี่ยงในแท็บแรก ผลจะปรากฏที่นี่")
+            X_scaled = scaler.transform(X_cluster)
+            cluster_label = int(kmeans.predict(X_scaled)[0])
 
-    # ------------------------------------------------------
-    # 🔹 โหลดโมเดล K-Means
-    # ------------------------------------------------------
-    try:
-        kmeans = joblib.load("kmeans_cluster_model.pkl")
-        scaler = joblib.load("scaler_cluster.pkl")
-        
-    except:
-        st.warning("⚠️ ไม่พบไฟล์โมเดล K-Means หรือ Scaler")
-        kmeans, scaler = None, None
-
-    # ------------------------------------------------------
-    # 🔹 วิเคราะห์กลุ่มผู้บาดเจ็บ
-    # ------------------------------------------------------
-    if model and kmeans and scaler and submit:
-        if hasattr(scaler, "feature_names_in_"):
-            valid_cols = scaler.feature_names_in_
-            X_cluster = X_input[[c for c in valid_cols if c in X_input.columns]]
+            cluster_desc = {
+                0: "👵 Elderly / Fall at home → Low Risk",
+                1: "🚗 Working Age / DUI / Speeding → High Risk",
+                2: "⚽ Child/Adolescent / Sports Injury → Medium Risk",
+                3: "👷 Laborer / Construction Accident → High Risk",
+                4: "🙂 General / No dominant factor → Low Risk"
+            }
+            st.markdown("---")
+            st.markdown(f"### 📊 Patient Grouping Result: **Cluster {cluster_label}**")
+            st.info(f"{cluster_desc.get(cluster_label, 'No description for this cluster yet.')}")
+            st.caption("💡 Use this for trend analysis and resource planning (e.g., ER teams, doctor shifts, accident prevention campaigns).")
         else:
-            X_cluster = X_input.select_dtypes(include=[np.number])
-
-        X_scaled = scaler.transform(X_cluster)
-        cluster_label = int(kmeans.predict(X_scaled)[0])
-
-        cluster_desc = {
-            0: "👵 กลุ่มผู้สูงอายุ / ลื่นล้มในบ้าน → ความเสี่ยงต่ำ",
-            1: "🚗 กลุ่มวัยทำงาน / เมา / ขับรถเร็ว → ความเสี่ยงสูง",
-            2: "⚽ กลุ่มเด็กและวัยรุ่น / เล่นกีฬา → ความเสี่ยงปานกลาง",
-            3: "👷 กลุ่มแรงงาน / ก่อสร้าง → ความเสี่ยงสูง",
-            4: "🙂 กลุ่มทั่วไป / ไม่มีปัจจัยเด่น → ความเสี่ยงต่ำ"
-        }
-
-        st.markdown("---")
-        st.markdown(f"### 📊 ผลการจัดกลุ่มผู้บาดเจ็บ: **Cluster {cluster_label}**")
-        st.info(f"{cluster_desc.get(cluster_label, 'ยังไม่มีคำอธิบายกลุ่มนี้')}")
-
-        st.caption("💡 ใช้เพื่อวิเคราะห์แนวโน้มและวางแผนทรัพยากร เช่น ทีมฉุกเฉิน, เวรแพทย์, หรือโครงการป้องกันอุบัติเหตุ")
-
+            st.warning("⚠️ K-Means or Scaler model file not found. Cannot perform segmentation.")
+    else:
+        st.info("🕐 Once you assess a patient's risk in the first tab, the results will appear here.")
 
 # ----------------------------------------------------------
-# 🧩 TAB 3 — Apriori Risk Association (Improved Summary)
+# 🧩 TAB 3 — Apriori Risk Association
 # ----------------------------------------------------------
 with tab3:
     st.subheader("🧩 Risk Association Analysis")
-    st.caption("วิเคราะห์ความสัมพันธ์ของปัจจัยเสี่ยง เพื่อวางแผนป้องกันและสนับสนุนการตัดสินใจเชิงนโยบาย")
+    st.caption("Analyze risk factor relationships to plan prevention and support policy decisions.")
 
-    # ✅ ส่วนสรุปข้อมูลผู้บาดเจ็บจากการประเมิน
-    if submit:
-        st.markdown("### 🧾 ข้อมูลผู้บาดเจ็บ")
+    if st.session_state.prediction_result:
+        res = st.session_state.prediction_result
+        data = res['input_data']
+        label = res['label']
+
+        st.markdown("### 🧾 Patient Information Summary")
         summary_cols = st.columns(3)
-        summary_cols[0].metric("อายุ", f"{age} ปี")
-        summary_cols[1].metric("เพศ", sex)
-        summary_cols[2].metric("ระดับความเสี่ยง", label)
+        summary_cols[0].metric("Age", f"{data['age']} years")
+        summary_cols[1].metric("Sex", "Male" if data['sex'] == 1 else "Female")
+        summary_cols[2].metric("Risk Level", label)
 
-        risk_tags = []
-        if risk1: risk_tags.append("ไม่สวมหมวกนิรภัย")
-        if risk2: risk_tags.append("ขับรถเร็ว/ประมาท")
-        if risk3: risk_tags.append("เมาแล้วขับ")
-        if risk4: risk_tags.append("ผู้สูงอายุ/เด็กเล็ก")
-        if risk5: risk_tags.append("บาดเจ็บหลายตำแหน่ง")
-        if not risk_tags:
-            risk_tags = ["ไม่มีปัจจัยเสี่ยงเด่น"]
-        st.markdown("**ปัจจัยเสี่ยง:** " + ", ".join(risk_tags))
+        risk_tags = [name for name, val in {"No helmet": data['risk1'], "Speeding": data['risk2'], "Drunk driving": data['risk3'], "Elderly/Child": data['risk4'], "Multiple injuries": data['risk5']}.items() if val]
+        st.markdown("**Risk Factors:** " + (", ".join(risk_tags) if risk_tags else "No dominant risk factors"))
         st.markdown("---")
 
-    # ✅ โหลดกฎ Apriori
-    try:
-        rules_minor = joblib.load("apriori_rules_minor.pkl")
-        rules_severe = joblib.load("apriori_rules_severe.pkl")
-        rules_fatal = joblib.load("apriori_rules_fatal.pkl")
-        
-    except:
-        st.warning("⚠️ ไม่พบไฟล์กฎ Apriori")
-        rules_minor = rules_severe = rules_fatal = None
+        def decode_set(x):
+            if isinstance(x, (frozenset, set)):
+                replacements = {
+                    "risk1": "No helmet/seatbelt", "risk2": "Speeding", "risk3": "Drunk driving",
+                    "risk4": "Elderly/Child", "risk5": "Multiple injuries", "head_injury": "Head injury",
+                    "mass_casualty": "Mass casualty", "cannabis": "Cannabis detected",
+                    "amphetamine": "Amphetamine detected", "drugs": "Other drugs detected",
+                    "sex": "Male", "age60plus": "Age > 60"
+                }
+                return ", ".join([replacements.get(str(i), str(i)) for i in x])
+            return str(x)
 
-    # ✅ ฟังก์ชันแปลง frozenset → คำอ่านง่าย
-    def decode_set(x):
-        if isinstance(x, (frozenset, set)):
-            replacements = {
-                "risk1": "ไม่สวมหมวกนิรภัย/เข็มขัดนิรภัย",
-                "risk2": "ขับรถเร็ว/ประมาท",
-                "risk3": "เมาแล้วขับ",
-                "risk4": "ผู้สูงอายุ/เด็กเล็ก",
-                "risk5": "บาดเจ็บหลายตำแหน่ง",
-                "head_injury": "บาดเจ็บที่ศีรษะ",
-                "mass_casualty": "เหตุการณ์หมู่",
-                "cannabis": "พบกัญชาในร่างกาย",
-                "amphetamine": "พบแอมเฟตามีนในร่างกาย",
-                "drugs": "พบยาอื่น ๆ ในร่างกาย",
-                "sex": "เพศชาย",
-                "age60plus": "อายุมากกว่า 60 ปี"
-            }
-            readable = [replacements.get(str(i), str(i)) for i in list(x)]
-            return ", ".join(readable)
-        return str(x)
+        rules_map = {"Low Risk": rules_minor, "Medium Risk": rules_severe, "High Risk": rules_fatal}
+        selected_rules = rules_map.get(label)
 
-    # ✅ เลือกชุดกฎตามผลการทำนาย
-    if model and submit:
-        if label == "เสี่ยงน้อย" and rules_minor is not None:
-            df_rules = rules_minor.head(5)
-        elif label == "เสี่ยงปานกลาง" and rules_severe is not None:
-            df_rules = rules_severe.head(5)
-        elif label == "เสี่ยงมาก" and rules_fatal is not None:
-            df_rules = rules_fatal.head(5)
-        else:
-            df_rules = pd.DataFrame()
-
-        if not df_rules.empty:
+        if selected_rules is not None and not selected_rules.empty:
+            df_rules = selected_rules.head(5).copy()
             df_rules["antecedents"] = df_rules["antecedents"].apply(decode_set)
             df_rules["consequents"] = df_rules["consequents"].apply(decode_set)
 
@@ -412,122 +328,93 @@ with tab3:
             st.markdown(
                 f"""
                 <div style='background-color:#1E1E1E;border-radius:10px;padding:12px;margin-bottom:10px'>
-                💡 <b>Insight:</b> พบว่าผู้ที่มี <b style='color:#FFC107'>{top_rule['antecedents']}</b> 
-                มักจะมีแนวโน้ม <b style='color:#FF5252'>{top_rule['consequents']}</b> 
-                (ความมั่นใจ {top_rule['confidence']*100:.1f}%, Lift = {top_rule['lift']:.2f})
+                💡 <b>Insight:</b> Patients with <b style='color:#FFC107'>{top_rule['antecedents']}</b> 
+                tend to also have <b style='color:#FF5252'>{top_rule['consequents']}</b> 
+                (Confidence {top_rule['confidence']*100:.1f}%, Lift = {top_rule['lift']:.2f})
                 </div>
-                """,
-                unsafe_allow_html=True
+                """, unsafe_allow_html=True
             )
-
             st.dataframe(
                 df_rules[["antecedents", "consequents", "support", "confidence", "lift"]],
                 use_container_width=True, hide_index=True
             )
-
-            st.markdown("📘 **การตีความ:**")
-            st.markdown("- **Support:** ความถี่ของกฎในข้อมูลทั้งหมด")
-            st.markdown("- **Confidence:** ความน่าจะเป็นที่กฎนี้เกิดขึ้นจริงในข้อมูล")
-            st.markdown("- **Lift > 1:** แสดงว่าความสัมพันธ์มีนัยสำคัญมากกว่าความบังเอิญ")
+            st.markdown("📘 **Interpretation:**\n- **Support:** Frequency of the rule in the dataset.\n- **Confidence:** Probability that the rule is true.\n- **Lift > 1:** Indicates the relationship is more significant than random chance.")
         else:
-            st.info("📭 ยังไม่มีกฎสำหรับประเภทนี้")
-
+            st.info("📭 No association rules available for this risk category.")
+    else:
+        st.info("🕐 Once you assess a patient's risk in the first tab, the results will appear here.")
 
 
 # ----------------------------------------------------------
-# 📊 TAB 4 — Clinical Summary & Insights Dashboard (Final Version)
+# 📊 TAB 4 — Clinical Summary & Insights Dashboard
 # ----------------------------------------------------------
 with tab4:
     st.subheader("📊 Clinical Summary & Insights")
-    st.caption("สรุปแนวโน้มผู้บาดเจ็บจากระบบ AI เพื่อใช้วางแผนเชิงกลยุทธ์และบริหารทรัพยากรโรงพยาบาล")
+    st.caption("Dashboard summarizing AI-driven patient trends for strategic planning and hospital resource management.")
 
-    # ======================================================
-    # 🗂️ 1. Load or Reset Log File
-    # ======================================================
+    # Load or Reset Log File
     log_file = "prediction_log.csv"
-
     c1, c2 = st.columns([4,1])
     with c1:
-        st.markdown("#### 🩺 สรุปข้อมูลจากการประเมินทั้งหมด")
+        st.markdown("#### 🩺 Summary of All Assessments")
     with c2:
-        if st.button("🧹 ล้างข้อมูลทั้งหมด"):
+        if st.button("🧹 Clear All Data"):
             if os.path.exists(log_file):
                 os.remove(log_file)
-                st.success("✅ ล้างข้อมูลเรียบร้อยแล้ว (เริ่มเก็บใหม่ได้เลย)")
+                st.success("✅ Data cleared successfully. You can start collecting new data.")
             else:
-                st.info("⚠️ ยังไม่มีข้อมูลให้ลบ")
+                st.info("⚠️ No data to clear.")
 
     if os.path.exists(log_file):
         df_log = pd.read_csv(log_file)
-        st.success(f"📁 โหลดข้อมูลสำเร็จ: {len(df_log):,} รายการ")
+        st.success(f"📁 Loaded {len(df_log):,} records successfully.")
     else:
-        st.warning("⚠️ ยังไม่มีข้อมูลจากการทำนาย")
-        df_log = pd.DataFrame(columns=[
-            "timestamp", "age", "sex", "predicted_severity",
-            "prov", "is_night", "risk1","risk2","risk3","risk4","risk5"
-        ])
+        st.warning("⚠️ No prediction data available yet.")
+        df_log = pd.DataFrame(columns=["timestamp", "age", "sex", "predicted_severity"])
 
     total_cases = len(df_log)
 
-    # ======================================================
-# 📌 2. KPI Overview (Updated to show gender ratio)
-# ======================================================
-    st.markdown("### 💡 ภาพรวมสถานการณ์ (KPI Overview)")
-    c1, c2, c3 = st.columns(3)
-
-    total_cases = len(df_log)
-    severe_ratio = df_log["predicted_severity"].eq("เสี่ยงมาก").mean() * 100 if total_cases > 0 else 0
-
-    # ✅ คำนวณสัดส่วนเพศ
-    if total_cases > 0 and "sex" in df_log.columns:
-        male_ratio = (df_log["sex"] == "ชาย").mean() * 100
-        female_ratio = (df_log["sex"] == "หญิง").mean() * 100
-    else:
-        male_ratio = female_ratio = 0
-
-    c1.metric("จำนวนเคสทั้งหมด", f"{total_cases:,}")
-    c2.metric("สัดส่วนผู้บาดเจ็บรุนแรง", f"{severe_ratio:.1f}%")
-    c3.metric("เพศชาย : หญิง", f"{male_ratio:.1f}% : {female_ratio:.1f}%")
-
-
-    # ======================================================
-    # 🩸 3. Distribution by Severity (Pie Chart)
-    # ======================================================
+    # Only display the dashboard if there is data
     if total_cases > 0:
-        st.markdown("### 🩸 สัดส่วนผู้บาดเจ็บตามระดับความเสี่ยง")
-        fig, ax = plt.subplots(figsize=(3.2, 3.2))
-        colors = ['#4CAF50', '#FFC107', '#F44336']
-        df_log['predicted_severity'].value_counts().plot.pie(
-            autopct='%1.1f%%', startangle=90, colors=colors, ax=ax,
+        # KPI Overview
+        st.markdown("### 💡 KPI Overview")
+        kpi1, kpi2, kpi3 = st.columns(3)
+
+        severe_ratio = df_log["predicted_severity"].eq("High Risk").mean() * 100
+        male_ratio = (df_log["sex"] == "Male").mean() * 100
+        female_ratio = 100 - male_ratio
+
+        kpi1.metric("Total Cases", f"{total_cases:,}")
+        kpi2.metric("High-Risk Patient Ratio", f"{severe_ratio:.1f}%")
+        kpi3.metric("Male : Female Ratio", f"{male_ratio:.1f}% : {female_ratio:.1f}%")
+
+        # Distribution by Severity (Pie Chart)
+        st.markdown("### 🩸 Patient Distribution by Risk Level")
+        fig, ax = plt.subplots(figsize=(4, 4))
+        # Define colors based on actual labels in the data to avoid errors
+        severity_counts = df_log['predicted_severity'].value_counts()
+        pie_colors = [triage_color.get(label, '#808080') for label in severity_counts.index]
+
+        severity_counts.plot.pie(
+            autopct='%1.1f%%', startangle=90, colors=pie_colors, ax=ax,
             textprops={'color': 'white', 'fontsize': 10}
         )
         ax.set_ylabel('')
-        ax.set_title("ระดับความรุนแรงของผู้บาดเจ็บ", color='white', fontsize=11)
-        st.pyplot(fig, use_container_width=False)
+        ax.set_title("Patient Severity Levels", color='white', fontsize=12)
+        st.pyplot(fig)
 
-    st.markdown("---")
+        st.markdown("---")
 
-    
-    # ======================================================
-# 🧭 6. Insight Summary (Textual)
-# ======================================================
-if total_cases > 0:
-    st.markdown("---")
-    st.markdown("### 🩺 Insight ทางคลินิก & ข้อเสนอเชิงกลยุทธ์")
-
-    # 🔹 ตัวอย่างการสรุปเชิงอัตโนมัติ
-    if not df_log.empty and "predicted_severity" in df_log.columns:
+        # Insight Summary
+        st.markdown("### 🩺 Clinical Insights & Strategic Recommendations")
         top_severity = df_log["predicted_severity"].value_counts().idxmax()
-
-        if top_severity == "เสี่ยงมาก":
-            msg = "มีแนวโน้มผู้บาดเจ็บรุนแรงสูง ควรจัดสรรทีมฉุกเฉินและทรัพยากรเพิ่มในช่วงเวลาที่พบเคสสูงสุด"
-        elif top_severity == "เสี่ยงปานกลาง":
-            msg = "กลุ่มผู้บาดเจ็บส่วนใหญ่มีความเสี่ยงปานกลาง ควรเน้นการติดตามอาการและประเมินซ้ำ"
+        if top_severity == "High Risk":
+            msg = "Trend shows a high number of severe injuries. Consider allocating more ER resources during peak incident times."
+        elif top_severity == "Medium Risk":
+            msg = "The majority of patients are at medium risk. Emphasize close monitoring and re-assessment protocols."
         else:
-            msg = "ส่วนใหญ่เป็นกลุ่มความเสี่ยงต่ำ สามารถใช้แนวทางป้องกันและให้ความรู้ประชาชน"
-
-        st.info(f"📊 สรุปสถานการณ์ปัจจุบัน: {msg}")
-        st.caption("💡 ใช้ข้อมูลนี้เพื่อสนับสนุนการจัดลำดับความสำคัญและบริหารทรัพยากรโรงพยาบาล")
+            msg = "Most cases are low-risk. Focus can be directed towards public education and prevention campaigns."
+        st.info(f"📊 Current Situation Summary: {msg}")
+        st.caption("💡 Use this data to support prioritization and hospital resource management.")
     else:
-        st.warning("⚠️ ยังไม่มีข้อมูลเพียงพอสำหรับการสรุป Insight")
-
+        st.info("Waiting for first prediction to generate dashboard...")
