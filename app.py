@@ -10,6 +10,10 @@ import seaborn as sns
 # ตั้งค่าให้ matplotlib แสดงผลได้เหมาะสม
 plt.style.use('dark_background')
 plt.rcParams['figure.figsize'] = (6, 4)
+# Configure matplotlib to support Thai font
+plt.rcParams['font.family'] = 'DejaVu Sans'  # Use a font that supports Thai characters
+plt.rcParams['axes.unicode_minus'] = False  # Allow minus sign to be displayed correctly
+
 
 # ----------------------------------------------------------
 # 📦 Load Models + Configs
