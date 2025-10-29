@@ -1,5 +1,5 @@
 # ----------------------------------------------------------
-# 🏥 Hospital AI Decision Support System (Refactored)
+# 🏥 Road Accident AI Decision Support System (Business Edition + Triage Colors)
 # ----------------------------------------------------------
 import os
 import json
@@ -11,114 +11,142 @@ from catboost import CatBoostClassifier
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 # ----------------------------------------------------------
 # ⚙️ Page Setup
 # ----------------------------------------------------------
-st.set_page_config(page_title="Hospital AI Decision Support", page_icon="🏥", layout="wide")
-st.title("Hospital AI for Clinical Decision Support")
+st.set_page_config(page_title="Road Accident AI Decision Support", page_icon="🏥", layout="wide")
+st.title("Road Accident AI for Clinical Decision Support")
 st.caption("ระบบสนับสนุนการตัดสินใจทางการแพทย์และการบริหารทรัพยากรโรงพยาบาล")
 
 # ----------------------------------------------------------
-# 📦 Load Models and Cached Resources
+# 📦 Load Models + Show in Expander
 # ----------------------------------------------------------
-@st.cache_resource
-def load_all_models():
-    """Loads all models and necessary files, caching them for performance."""
-    resources = {}
-    msgs = []
+import joblib
+import json
+import streamlit as st
 
+@st.cache_resource
+def load_all():
+    msgs = []  # เก็บข้อความไว้แสดงใน expander
+
+    # ------------------------------------------------------
+    # 🔹 CatBoost Model
+    # ------------------------------------------------------
     try:
-        resources["model"] = joblib.load("predict_catboost_multi.pkl")
+        model = joblib.load("predict_catboost_multi.pkl")
         msgs.append("✅ predict_catboost_multi.pkl — Clinical Severity Model")
-    except FileNotFoundError:
-        resources["model"] = None
+    except Exception:
+        model = None
         msgs.append("❌ ไม่พบ predict_catboost_multi.pkl")
 
+    # ------------------------------------------------------
+    # 🔹 Encoders
+    # ------------------------------------------------------
     try:
-        resources["encoders"] = joblib.load("encoders_multi.pkl")
+        encoders = joblib.load("encoders_multi.pkl")
         msgs.append("✅ encoders_multi.pkl — Encoders for Clinical Data")
-    except FileNotFoundError:
-        resources["encoders"] = None
+    except Exception:
+        encoders = None
         msgs.append("⚠️ ไม่พบ encoders_multi.pkl")
 
+    # ------------------------------------------------------
+    # 🔹 Features
+    # ------------------------------------------------------
     try:
-        with open("features_multi.json", "r") as f:
-            resources["features"] = json.load(f)
+        with open("features_multi.json", "r", encoding="utf-8") as f:
+            features = json.load(f)
         msgs.append("✅ features_multi.json — Model Features Configuration")
-    except FileNotFoundError:
-        resources["features"] = []
+    except Exception:
+        features = []
         msgs.append("⚠️ ไม่พบ features_multi.json")
 
+    # ------------------------------------------------------
+    # 🔹 K-Means + Scaler
+    # ------------------------------------------------------
     try:
-        resources["kmeans"] = joblib.load("kmeans_cluster_model.pkl")
-        resources["scaler"] = joblib.load("scaler_cluster.pkl")
+        kmeans = joblib.load("kmeans_cluster_model.pkl")
+        scaler = joblib.load("scaler_cluster.pkl")
         msgs.append("✅ kmeans_cluster_model.pkl / scaler_cluster.pkl — Clustering Models")
-    except FileNotFoundError:
-        resources["kmeans"] = resources["scaler"] = None
+    except Exception:
+        kmeans = scaler = None
         msgs.append("⚠️ ไม่พบไฟล์ K-Means / Scaler")
 
+    # ------------------------------------------------------
+    # 🔹 Apriori Rules
+    # ------------------------------------------------------
     try:
-        resources["rules_minor"] = joblib.load("apriori_rules_minor.pkl")
-        resources["rules_severe"] = joblib.load("apriori_rules_severe.pkl")
-        resources["rules_fatal"] = joblib.load("apriori_rules_fatal.pkl")
+        rules_minor = joblib.load("apriori_rules_minor.pkl")
+        rules_severe = joblib.load("apriori_rules_severe.pkl")
+        rules_fatal = joblib.load("apriori_rules_fatal.pkl")
         msgs.append("✅ apriori_rules_[minor/severe/fatal].pkl — Risk Pattern Mining Rules")
-    except FileNotFoundError:
-        resources["rules_minor"] = resources["rules_severe"] = resources["rules_fatal"] = None
+    except Exception:
+        rules_minor = rules_severe = rules_fatal = None
         msgs.append("⚠️ ไม่พบไฟล์กฎ Apriori")
 
-    with st.expander("📂 สถานะการโหลดไฟล์โมเดล", expanded=False):
+    # ------------------------------------------------------
+    # 📋 แสดงผลแบบเรียบใน expander
+    # ------------------------------------------------------
+    with st.expander("📂 รายการไฟล์ที่โหลดแล้ว", expanded=False):
         for m in msgs:
             st.caption(m)
-    return resources
 
-# Load all resources
-resources = load_all_models()
+    # ------------------------------------------------------
+    # 🔁 Return Models
+    # ------------------------------------------------------
+    return model, encoders, features, kmeans, scaler, rules_minor, rules_severe, rules_fatal
+
 
 # ----------------------------------------------------------
-# 🧩 Manual Mappings and Constants
+# ✅ เรียกใช้
 # ----------------------------------------------------------
-# (Mappings remain unchanged)
-activity_mapping = {"0": "เดินเท้า", "1": "โดยสารพาหนะสาธารณะ", "2": "โดยสารพาหนะส่วนบุคคล", "3": "ขับขี่พาหนะส่วนบุคคล", "4": "ทำงาน", "5": "เล่นกีฬา", "6": "กิจกรรมอื่น ๆ"}
-aplace_mapping = {"10": "บ้านพักอาศัย", "11": "ถนน/ทางหลวง", "12": "สถานที่ทำงาน", "13": "โรงเรียน/สถาบันศึกษา", "14": "พื้นที่สาธารณะ", "15": "อื่น ๆ"}
-prov_mapping = {"10": "กรุงเทพมหานคร", "20": "เชียงใหม่", "30": "ขอนแก่น", "40": "ภูเก็ต", "50": "นครราชสีมา", "60": "สงขลา", "99": "อื่น ๆ"}
+model, encoders, features, kmeans, scaler, rules_minor, rules_severe, rules_fatal = load_all()
+
+# ----------------------------------------------------------
+# 🧩 Manual Mappings
+# ----------------------------------------------------------
+activity_mapping = {
+    "0": "เดินเท้า",
+    "1": "โดยสารพาหนะสาธารณะ",
+    "2": "โดยสารพาหนะส่วนบุคคล",
+    "3": "ขับขี่พาหนะส่วนบุคคล",
+    "4": "ทำงาน",
+    "5": "เล่นกีฬา",
+    "6": "กิจกรรมอื่น ๆ"
+}
+
+aplace_mapping = {
+    "10": "บ้านพักอาศัย",
+    "11": "ถนน/ทางหลวง",
+    "12": "สถานที่ทำงาน",
+    "13": "โรงเรียน/สถาบันศึกษา",
+    "14": "พื้นที่สาธารณะ",
+    "15": "อื่น ๆ"
+}
+
+prov_mapping = {
+    "10": "กรุงเทพมหานคร",
+    "20": "เชียงใหม่",
+    "30": "ขอนแก่น",
+    "40": "ภูเก็ต",
+    "50": "นครราชสีมา",
+    "60": "สงขลา",
+    "99": "อื่น ๆ"
+}
+
 severity_map = {0: "เสี่ยงน้อย", 1: "เสี่ยงปานกลาง", 2: "เสี่ยงมาก"}
-advice_map = {"เสี่ยงน้อย": "ดูแลอาการทั่วไป เฝ้าระวังซ้ำทุก 15–30 นาที", "เสี่ยงปานกลาง": "ส่งตรวจเพิ่มเติม ให้สารน้ำ / ยาแก้ปวด / เฝ้าสัญญาณชีพใกล้ชิด", "เสี่ยงมาก": "แจ้งทีมสหสาขา เปิดทางเดินหายใจ เตรียมห้องฉุกเฉินหรือส่งต่อด่วน"}
-triage_color = {"เสี่ยงน้อย": "#4CAF50", "เสี่ยงปานกลาง": "#FFC107", "เสี่ยงมาก": "#F44336"}
+advice_map = {
+    "เสี่ยงน้อย": "ดูแลอาการทั่วไป เฝ้าระวังซ้ำทุก 15–30 นาที",
+    "เสี่ยงปานกลาง": "ส่งตรวจเพิ่มเติม ให้สารน้ำ / ยาแก้ปวด / เฝ้าสัญญาณชีพใกล้ชิด",
+    "เสี่ยงมาก": "แจ้งทีมสหสาขา เปิดทางเดินหายใจ เตรียมห้องฉุกเฉินหรือส่งต่อด่วน"
+}
 
-
-# ----------------------------------------------------------
-# 📝 Helper Function for Preprocessing
-# ----------------------------------------------------------
-def preprocess_input(data_dict, encoders, features):
-    df = pd.DataFrame([data_dict])
-    # Reverse map string values back to keys for processing
-    reverse_activity = {v: k for k, v in activity_mapping.items()}
-    reverse_aplace = {v: k for k, v in aplace_mapping.items()}
-    reverse_prov = {v: k for k, v in prov_mapping.items()}
-    df["activity"] = df["activity"].map(reverse_activity)
-    df["aplace"] = df["aplace"].map(reverse_aplace)
-    df["prov"] = df["prov"].map(reverse_prov)
-    
-    # Apply encoders
-    for col in ["activity", "aplace", "prov"]:
-        val = str(df.at[0, col])
-        if encoders and col in encoders:
-            le = encoders[col]
-            if val in le.classes_:
-                df[col] = le.transform([val])[0]
-            else:
-                df[col] = -1 # Handle unknown category
-        else:
-            df[col] = -1
-
-    # Feature Engineering
-    df["age_group_60plus"] = (df["age"] >= 60).astype(int)
-    df["risk_count"] = df[["risk1","risk2","risk3","risk4","risk5"]].sum(axis=1)
-    df["night_flag"] = df["is_night"].astype(int)
-    
-    # Ensure all required features are present
-    df = df.reindex(columns=features, fill_value=0)
-    return df
+# สี triage
+triage_color = {
+    "เสี่ยงน้อย": "#4CAF50",      # เขียว
+    "เสี่ยงปานกลาง": "#FFC107",  # เหลือง
+    "เสี่ยงมาก": "#F44336"        # แดง
+}
 
 # ==========================================================
 # 🩺 TAB SYSTEM
