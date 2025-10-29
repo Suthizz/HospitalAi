@@ -27,42 +27,42 @@ def load_all():
     try:
         # Assume the model file is available in the deployment environment
         model = joblib.load("predict_catboost_multi.pkl")
-        st.write("✅ Clinical Severity Model Loaded.")
+        st.success("✅ Clinical Severity Model (predict_catboost_multi.pkl) Loaded.")
     except Exception as e:
         model = None
-        st.error(f"❌ predict_catboost_multi.pkl NOT FOUND. (Error: {e}) -> Prediction will not work.")
+        st.error(f"❌ Clinical Severity Model (predict_catboost_multi.pkl) NOT FOUND. (Error: {e}) -> Prediction will not work.")
 
     # 🔹 Encoders / Features / K-Means / Apriori
     try:
         encoders = joblib.load("encoders_multi.pkl")
-        st.write("✅ Encoders Loaded.")
+        st.success("✅ Encoders (encoders_multi.pkl) Loaded.")
     except:
         encoders = None
-        st.warning("⚠️ Encoders NOT FOUND. Some preprocessing steps might be skipped.")
+        st.warning("⚠️ Encoders (encoders_multi.pkl) NOT FOUND. Some preprocessing steps might be skipped.")
 
 
     try:
         with open("features_multi.json", "r") as f: features = json.load(f)
-        st.write("✅ Features List Loaded.")
+        st.success("✅ Features List (features_multi.json) Loaded.")
     except:
         features = ['age', 'sex', 'is_night', 'head_injury', 'mass_casualty', 'risk1', 'risk2', 'risk3', 'risk4', 'risk5', 'cannabis', 'amphetamine', 'drugs', 'activity', 'aplace', 'prov']
-        st.warning(f"⚠️ Features List NOT FOUND. Using default list: {features}")
+        st.warning(f"⚠️ Features List (features_multi.json) NOT FOUND. Using default list: {features}")
 
 
     try:
         kmeans = joblib.load("kmeans_cluster_model.pkl")
         scaler = joblib.load("scaler_cluster.pkl")
-        st.write("✅ K-Means Cluster Model and Scaler Loaded.")
+        st.success("✅ K-Means Cluster Model (kmeans_cluster_model.pkl) and Scaler (scaler_cluster.pkl) Loaded.")
     except:
         kmeans, scaler = None, None
-        st.warning("⚠️ K-Means Cluster Model or Scaler NOT FOUND. Clustering analysis will not be available.")
+        st.warning("⚠️ K-Means Cluster Model (kmeans_cluster_model.pkl) or Scaler (scaler_cluster.pkl) NOT FOUND. Clustering analysis will not be available.")
 
 
     try:
         rules_minor = joblib.load("apriori_rules_minor.pkl")
         rules_severe = joblib.load("apriori_rules_severe.pkl")
         rules_fatal = joblib.load("apriori_rules_fatal.pkl")
-        st.write("✅ Apriori Association Rules Loaded.")
+        st.success("✅ Apriori Association Rules (apriori_rules_[minor/severe/fatal].pkl) Loaded.")
     except:
         rules_minor, rules_severe, rules_fatal = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         st.warning("⚠️ Apriori Association Rules NOT FOUND. Risk association analysis will not be available.")
