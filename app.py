@@ -10,10 +10,10 @@ import seaborn as sns
 # ตั้งค่าให้ matplotlib แสดงผลได้เหมาะสม
 plt.style.use('dark_background')
 plt.rcParams['figure.figsize'] = (6, 4)
+
 # Configure matplotlib to support Thai font
 plt.rcParams['font.family'] = 'DejaVu Sans'  # Use a font that supports Thai characters
 plt.rcParams['axes.unicode_minus'] = False  # Allow minus sign to be displayed correctly
-
 
 # ----------------------------------------------------------
 # 📦 Load Models + Configs
@@ -21,7 +21,7 @@ plt.rcParams['axes.unicode_minus'] = False  # Allow minus sign to be displayed c
 
 @st.cache_resource
 def load_all():
-    st.write("⏳ Attempting to Load Models...")
+    st.write("⏳ Attempting to Load Models and Configurations...")
 
     # 🔹 CatBoost Model
     try:
@@ -35,22 +35,38 @@ def load_all():
     # 🔹 Encoders / Features / K-Means / Apriori
     try:
         encoders = joblib.load("encoders_multi.pkl")
-    except: encoders = None
+        st.write("✅ Encoders Loaded.")
+    except:
+        encoders = None
+        st.warning("⚠️ Encoders NOT FOUND. Some preprocessing steps might be skipped.")
+
 
     try:
         with open("features_multi.json", "r") as f: features = json.load(f)
-    except: features = ['age', 'sex', 'is_night', 'head_injury', 'mass_casualty', 'risk1', 'risk2', 'risk3', 'risk4', 'risk5', 'cannabis', 'amphetamine', 'drugs', 'activity', 'aplace', 'prov']
+        st.write("✅ Features List Loaded.")
+    except:
+        features = ['age', 'sex', 'is_night', 'head_injury', 'mass_casualty', 'risk1', 'risk2', 'risk3', 'risk4', 'risk5', 'cannabis', 'amphetamine', 'drugs', 'activity', 'aplace', 'prov']
+        st.warning(f"⚠️ Features List NOT FOUND. Using default list: {features}")
+
 
     try:
         kmeans = joblib.load("kmeans_cluster_model.pkl")
         scaler = joblib.load("scaler_cluster.pkl")
-    except: kmeans, scaler = None, None
+        st.write("✅ K-Means Cluster Model and Scaler Loaded.")
+    except:
+        kmeans, scaler = None, None
+        st.warning("⚠️ K-Means Cluster Model or Scaler NOT FOUND. Clustering analysis will not be available.")
+
 
     try:
         rules_minor = joblib.load("apriori_rules_minor.pkl")
         rules_severe = joblib.load("apriori_rules_severe.pkl")
         rules_fatal = joblib.load("apriori_rules_fatal.pkl")
-    except: rules_minor, rules_severe, rules_fatal = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        st.write("✅ Apriori Association Rules Loaded.")
+    except:
+        rules_minor, rules_severe, rules_fatal = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        st.warning("⚠️ Apriori Association Rules NOT FOUND. Risk association analysis will not be available.")
+
 
     return model, encoders, features, kmeans, scaler, rules_minor, rules_severe, rules_fatal
 
@@ -142,6 +158,60 @@ st.set_page_config(layout="wide")
 
 st.title("🏥 Hospital AI Decision Support System")
 
+# Initialize session state for form inputs if not already done
+if 'age' not in st.session_state:
+    st.session_state.age = 30
+if 'sex' not in st.session_state:
+    st.session_state.sex = "ชาย"
+if 'is_night' not in st.session_state:
+    st.session_state.is_night = False
+if 'head_injury' not in st.session_state:
+    st.session_state.head_injury = False
+if 'mass_casualty' not in st.session_state:
+    st.session_state.mass_casualty = False
+if 'activity' not in st.session_state:
+    st.session_state.activity = list(activity_mapping.values())[0]
+if 'aplace' not in st.session_state:
+    st.session_state.aplace = list(aplace_mapping.values())[0]
+if 'prov' not in st.session_state:
+    st.session_state.prov = list(prov_mapping.values())[0]
+if 'risk1' not in st.session_state:
+    st.session_state.risk1 = False
+if 'risk2' not in st.session_state:
+    st.session_state.risk2 = False
+if 'risk3' not in st.session_state:
+    st.session_state.risk3 = False
+if 'risk4' not in st.session_state:
+    st.session_state.risk4 = False
+if 'risk5' not in st.session_state:
+    st.session_state.risk5 = False
+if 'cannabis' not in st.session_state:
+    st.session_state.cannabis = False
+if 'amphetamine' not in st.session_state:
+    st.session_state.amphetamine = False
+if 'drugs' not in st.session_state:
+    st.session_state.drugs = False
+
+# Function to reset form inputs
+def reset_form():
+    st.session_state.age = 30
+    st.session_state.sex = "ชาย"
+    st.session_state.is_night = False
+    st.session_state.head_injury = False
+    st.session_state.mass_casualty = False
+    st.session_state.activity = list(activity_mapping.values())[0]
+    st.session_state.aplace = list(aplace_mapping.values())[0]
+    st.session_state.prov = list(prov_mapping.values())[0]
+    st.session_state.risk1 = False
+    st.session_state.risk2 = False
+    st.session_state.risk3 = False
+    st.session_state.risk4 = False
+    st.session_state.risk5 = False
+    st.session_state.cannabis = False
+    st.session_state.amphetamine = False
+    st.session_state.drugs = False
+
+
 # ----------------------------------------------------------
 # 🧠 TAB 1 — CatBoost Prediction
 # ----------------------------------------------------------
@@ -150,44 +220,48 @@ st.header("🧠 Clinical Severity Prediction")
 with st.form("prediction_form"):
     col1, col2, col3 = st.columns(3)
     with col1:
-        age = st.slider("อายุ", 0, 100, 30)
-        sex = st.radio("เพศ", ["ชาย", "หญิง"])
-        is_night = st.checkbox("เหตุการณ์กลางคืน")
+        age = st.slider("อายุ", 0, 100, key='age')
+        sex = st.radio("เพศ", ["ชาย", "หญิง"], key='sex')
+        is_night = st.checkbox("เหตุการณ์กลางคืน", key='is_night')
     with col2:
-        head_injury = st.checkbox("บาดเจ็บที่ศีรษะ")
-        mass_casualty = st.checkbox("เหตุการณ์หมู่ (Mass Casualty)")
-        activity = st.selectbox("ลักษณะกิจกรรม", list(activity_mapping.values()))
+        head_injury = st.checkbox("บาดเจ็บที่ศีรษะ", key='head_injury')
+        mass_casualty = st.checkbox("เหตุการณ์หมู่ (Mass Casualty)", key='mass_casualty')
+        activity = st.selectbox("ลักษณะกิจกรรม", list(activity_mapping.values()), key='activity')
     with col3:
-        aplace = st.selectbox("สถานที่เกิดเหตุ", list(aplace_mapping.values()))
-        prov = st.selectbox("จังหวัด", list(prov_mapping.values()))
+        aplace = st.selectbox("สถานที่เกิดเหตุ", list(aplace_mapping.values()), key='aplace')
+        prov = st.selectbox("จังหวัด", list(prov_mapping.values()), key='prov')
         risk_col1, risk_col2 = st.columns(2)
         with risk_col1:
-            risk1 = st.checkbox("Risk 1: ไม่สวมหมวกนิรภัย / เข็มขัดนิรภัย")
-            risk2 = st.checkbox("Risk 2: ขับรถเร็ว / ประมาท")
-            risk3 = st.checkbox("Risk 3: เมา / ดื่มสุรา")
+            risk1 = st.checkbox("Risk 1: ไม่สวมหมวกนิรภัย / เข็มขัดนิรภัย", key='risk1')
+            risk2 = st.checkbox("Risk 2: ขับรถเร็ว / ประมาท", key='risk2')
+            risk3 = st.checkbox("Risk 3: เมา / ดื่มสุรา", key='risk3')
         with risk_col2:
-            risk4 = st.checkbox("Risk 4: ผู้สูงอายุ / เด็กเล็ก")
-            risk5 = st.checkbox("Risk 5: บาดเจ็บหลายตำแหน่ง")
+            risk4 = st.checkbox("Risk 4: ผู้สูงอายุ / เด็กเล็ก", key='risk4')
+            risk5 = st.checkbox("Risk 5: บาดเจ็บหลายตำแหน่ง", key='risk5')
             # Drugs (Assume separate inputs for simplicity in UI)
-            cannabis = st.checkbox("พบกัญชา")
-            amphetamine = st.checkbox("พบแอมเฟตามีน")
-            drugs = st.checkbox("พบยาเสพติดอื่น ๆ")
+            cannabis = st.checkbox("พบกัญชา", key='cannabis')
+            amphetamine = st.checkbox("พบแอมเฟตามีน", key='amphetamine')
+            drugs = st.checkbox("พบยาเสพติดอื่น ๆ", key='drugs')
 
+    col_buttons = st.columns(2)
+    with col_buttons[0]:
+        submit_button = st.form_submit_button("ประเมินความเสี่ยง")
+    with col_buttons[1]:
+        clear_button = st.form_submit_button("เคลียร์ข้อมูล", on_click=reset_form)
 
-    submit_button = st.form_submit_button("ประเมินความเสี่ยง")
 
 if submit_button:
     # 1. จัดรูปแบบ Input Data
     input_data = {
-        "age": age,
-        "sex": 1 if sex == "ชาย" else 0, # Male=1, Female=0
-        "is_night": int(is_night),
-        "head_injury": int(head_injury),
-        "mass_casualty": int(mass_casualty),
-        "risk1": int(risk1), "risk2": int(risk2), "risk3": int(risk3),
-        "risk4": int(risk4), "risk5": int(risk5),
-        "cannabis": int(cannabis), "amphetamine": int(amphetamine), "drugs": int(drugs),
-        "activity": activity, "aplace": aplace, "prov": prov
+        "age": st.session_state.age,
+        "sex": 1 if st.session_state.sex == "ชาย" else 0, # Male=1, Female=0
+        "is_night": int(st.session_state.is_night),
+        "head_injury": int(st.session_state.head_injury),
+        "mass_casualty": int(st.session_state.mass_casualty),
+        "risk1": int(st.session_state.risk1), "risk2": int(st.session_state.risk2), "risk3": int(st.session_state.risk3),
+        "risk4": int(st.session_state.risk4), "risk5": int(st.session_state.risk5),
+        "cannabis": int(st.session_state.cannabis), "amphetamine": int(st.session_state.amphetamine), "drugs": int(st.session_state.drugs),
+        "activity": st.session_state.activity, "aplace": st.session_state.aplace, "prov": st.session_state.prov
     }
 
     # 2. Preprocess
@@ -212,8 +286,8 @@ if submit_button:
             log_file = "prediction_log.csv"
             new_row = pd.DataFrame([{
                 "timestamp": pd.Timestamp.now(),
-                "age": age,
-                "sex": sex,
+                "age": st.session_state.age,
+                "sex": st.session_state.sex,
                 "predicted_severity": current_label
             }])
             if os.path.exists(log_file):
@@ -234,7 +308,7 @@ if submit_button:
     st.header("👥 Patient Segmentation")
 
     if kmeans is not None and scaler is not None and model is not None:
-        st.write(f"🧾 ข้อมูล: อายุ {age} ปี, เพศ {sex}, ระดับความเสี่ยง: {current_label}")
+        st.write(f"🧾 ข้อมูล: อายุ {st.session_state.age} ปี, เพศ {st.session_state.sex}, ระดับความเสี่ยง: {current_label}")
 
         # 1. เตรียมข้อมูลสำหรับ Clustering
         if hasattr(scaler, "feature_names_in_"):
