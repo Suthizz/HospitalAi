@@ -438,7 +438,7 @@ if submit_button:
             colors=[triage_color.get(l) for l in severity_counts.index],
             textprops={'color': 'black', 'fontsize': 10}
         )
-        ax.set_title("ระดับความรุนแรงของผู้บาดเจ็บ")
+        ax.set_title("Level")
         st.pyplot(fig)
 
 
