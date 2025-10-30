@@ -13,24 +13,21 @@ plt.style.use('dark_background')
 plt.rcParams['figure.figsize'] = (6, 4)
 
 # Configure matplotlib to support Thai font
-# Try installing a known Thai font and updating the font cache
-try:
-    # Attempt to install a Thai font (e.g., Sarabun) - This might require root privileges or a specific environment
-    # In a Colab environment, this might look like:
-    # !apt-get install fonts-thai-tlwg -qq > /dev/null
-    # For a general Streamlit deployment, ensure the font is available in the environment.
-    # For demonstration, we will try to use a font that might be available or fallback.
+# Use font_manager to find a font that supports Thai characters
+thai_font_name = None
+for font in fm.fontManager.ttflist:
+    # Check if the font name contains keywords indicating Thai support
+    if 'Sarabun' in font.name or 'Loma' in font.name or 'Tahoma' in font.name: # Add other common Thai fonts if needed
+        thai_font_name = font.name
+        break
 
-    # Use a font that is likely to support Thai characters (e.g., Sarabun, Loma, etc.)
-    # Check available fonts: [f.name for f in fm.fontManager.ttflist]
-    thai_font = fm.FontProperties(fname='/usr/share/fonts/truetype/tlwg/Sarabun.ttf') # Example path, might need adjustment
-    plt.rcParams['font.family'] = thai_font.get_name()
-    st.write(f"✅ Attempting to use font: {plt.rcParams['font.family']}")
-
-except Exception as e:
-    st.warning(f"⚠️ Could not set Thai font. Falling back to default. Error: {e}")
+if thai_font_name:
+    plt.rcParams['font.family'] = thai_font_name
+    st.write(f"✅ Using Thai font: {plt.rcParams['font.family']}")
+else:
+    st.warning("⚠️ No suitable Thai font found. Thai characters might not display correctly.")
     # Fallback to a potentially available font or default
-    plt.rcParams['font.family'] = 'DejaVu Sans' # Keep DejaVu Sans as a fallback
+    plt.rcParams['font.family'] = 'DejaVu Sans'
     plt.rcParams['font.sans-serif'] = ['DejaVu Sans']
 
 
