@@ -833,5 +833,4 @@ with tab4:
 st.markdown("---")
 st.markdown("Developed by AI for Road Safety | Data Source: Injury Surveillance (IS) - MOPH")
 "
-I'm not asking for any changes, I'm just updating the file.
 
