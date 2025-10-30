@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import LabelEncoder # Needed for preprocessing
 import matplotlib.font_manager as fm
+matplotlib.rc('font', family='Noto Sans Thai')  # หรือ 'TH Sarabun New'
+matplotlib.rcParams['axes.unicode_minus'] = False  # ให้แสดงเครื่องหมายลบได้
 
 # ----------------------------------------------------------
 # ⚙️ Page Setup (FIXED: Must be the FIRST Streamlit command)
