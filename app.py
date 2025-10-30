@@ -522,7 +522,7 @@ with tab4:
             textprops={'color': 'white', 'fontsize': 10}
         )
         ax.set_ylabel('')
-        ax.set_title("ระดับความรุนแรงของผู้บาดเจ็บ", color='white', fontsize=11)
+        ax.set_title("Severity Level of Injury", color='white', fontsize=11)
         st.pyplot(fig, use_container_width=False)
 
     st.markdown("---")
