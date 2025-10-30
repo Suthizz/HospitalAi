@@ -832,5 +832,5 @@ with tab4:
 
 st.markdown("---")
 st.markdown("Developed by AI for Road Safety | Data Source: Injury Surveillance (IS) - MOPH")
-"
+
 
